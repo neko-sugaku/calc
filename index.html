@@ -3,14 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Math Calculator</title>
+    <title>Math Master Calculator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <!-- 数式処理ライブラリ (nerdamer) を追加 -->
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; overflow: hidden; height: 100vh; }
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; height: 100vh; margin: 0; padding: 0; overflow: hidden; }
         
         .calc-btn { 
             transition: all 0.05s; 
@@ -18,11 +23,14 @@
             display: flex; 
             align-items: center; 
             justify-content: center;
-            font-size: 1rem;
+            font-size: 1.2rem;
             font-weight: 600;
+            border-right: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+            cursor: pointer;
         }
         .calc-btn:active { transform: scale(0.95); filter: brightness(0.9); }
-        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; }
+        .tab-active { border-bottom: 3px solid #3b82f6; color: #3b82f6; background: white; }
         
         #display-input-editor {
             width: 100%;
@@ -35,23 +43,21 @@
             display: block;
             overflow-x: auto;
             white-space: nowrap;
-            padding: 4px 12px;
+            padding: 8px 12px;
             background: transparent;
-            line-height: 1.5;
+            line-height: 1.2;
         }
 
-        /* 累乗表示 */
-        sup {
-            font-size: 0.65em;
-            position: relative;
-            display: inline-block;
-            transform: translateY(-80%);
-            margin-left: 1px;
-            font-weight: 600;
-            line-height: 1;
-            font-style: normal;
-            color: #2563eb;
+        .math-frac {
+            display: inline-flex;
+            flex-direction: column;
+            vertical-align: middle;
+            text-align: center;
+            font-size: 0.85em;
+            margin: 0 4px;
+            line-height: 1.1;
         }
+        .math-frac .num { border-bottom: 2px solid currentColor; padding: 0 2px; }
 
         .input-frac {
             display: inline-flex;
@@ -75,186 +81,184 @@
         }
         .input-frac .num { border-bottom: 1.5px solid #64748b; }
 
-        /* 結果の分数表示 */
-        .math-frac {
-            display: inline-flex;
-            flex-direction: column;
-            vertical-align: middle;
-            text-align: center;
-            font-size: 0.85em;
-            margin: 0 4px;
-            line-height: 1.1;
+        .tight-grid { gap: 0; background-color: #e5e7eb; grid-template-columns: repeat(5, 1fr); height: 100%; }
+        
+        .stats-card { background: white; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb; width: 100%; }
+        .data-input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; min-height: 60px; resize: vertical;}
+        
+        #stat-freq-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        #stat-freq-table th, #stat-freq-table td { border: 1px solid #cbd5e1; padding: 6px 4px; font-size: 0.85rem; text-align: center; }
+        #stat-freq-table th { background-color: #f8fafc; font-weight: bold; }
+        #stat-freq-table tr.total-row { background-color: #f1f5f9; font-weight: bold; }
+
+        .summary-text { font-family: 'Roboto Mono', monospace; font-size: 0.85rem; white-space: pre; line-height: 1.6; }
+        
+        #msg-box { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; display: none; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+
+        .py-answer-mode { background-color: #dbeafe !important; color: #1e40af !important; border: 2px solid #3b82f6 !important; }
+
+        @media (max-width: 768px) {
+            #main-container { flex-direction: column; height: 100vh; overflow-y: auto; }
+            #history-container { width: 100%; height: auto; min-height: 200px; border-left: none; border-top: 1px solid #e5e7eb; flex-shrink: 0; }
+            .tight-grid { min-height: 350px; }
+            #main-content { height: auto; flex: none; }
         }
-        .math-frac .num { border-bottom: 2px solid currentColor; padding: 0 2px; }
-        .math-frac .den { padding: 0 2px; }
-
-        .tight-grid { gap: 1px !important; background-color: #e5e7eb; border: 1px solid #e5e7eb; height: 100%; grid-template-columns: repeat(5, 1fr); }
-        .tight-grid button, .tight-grid div { border: none !important; border-radius: 0 !important; }
-
-        .py-input-box { border: 1px solid #d1d5db; background: white; padding: 6px; border-radius: 6px; text-align: center; width: 100%; font-size: 0.9rem; outline: none; }
-        /* 結果表示用の青背景クラス */
-        .py-result { color: #2563eb !important; font-weight: bold; background-color: #eff6ff !important; border-color: #3b82f6 !important; }
-        
-        #main-container { height: 95vh; }
-        
-        .stats-card { background: white; border-radius: 8px; padding: 8px; border: 1px solid #e5e7eb; }
-        .data-input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 6px; font-family: 'Roboto Mono', monospace; font-size: 0.8rem; height: 45px; resize: none;}
-        #stat-freq-table th, #stat-freq-table td { border: 1px solid #e5e7eb; padding: 2px 4px; font-size: 0.75rem; }
-        .summary-text { font-family: 'Roboto Mono', monospace; font-size: 0.75rem; white-space: pre; line-height: 1.4; letter-spacing: -0.02em; }
-        
-        #msg-box { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; display: none; z-index: 100; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
     </style>
 </head>
-<body class="flex items-center justify-center p-2">
+<body>
 
     <div id="msg-box"></div>
 
-    <div id="main-container" class="bg-white w-full max-w-5xl rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row">
+    <div id="main-container" class="flex w-full h-screen bg-white shadow-xl overflow-hidden">
         
-        <div class="flex-1 flex flex-col border-r min-w-0 h-full">
-            <!-- Navigation -->
-            <div class="flex border-b text-[10px] md:text-sm shrink-0">
-                <button onclick="switchTab('scientific')" id="tab-scientific" class="flex-1 py-3 text-center font-semibold tab-active">電卓</button>
-                <button onclick="switchTab('pythagoras')" id="tab-pythagoras" class="flex-1 py-3 text-center font-semibold text-gray-500">三平方</button>
-                <button onclick="switchTab('stats')" id="tab-stats" class="flex-1 py-3 text-center font-semibold text-gray-500">データ活用</button>
-                <button onclick="switchTab('random')" id="tab-random" class="flex-1 py-3 text-center font-semibold text-gray-500">抽出</button>
+        <!-- Main Area -->
+        <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden border-r">
+            <!-- Tabs -->
+            <div class="flex border-b text-sm shrink-0 bg-gray-50">
+                <button onclick="switchTab('scientific')" id="tab-scientific" class="flex-1 py-4 text-center font-bold tab-active">電卓</button>
+                <button onclick="switchTab('pythagoras')" id="tab-pythagoras" class="flex-1 py-4 text-center font-bold text-gray-500">三平方</button>
+                <button onclick="switchTab('stats')" id="tab-stats" class="flex-1 py-4 text-center font-bold text-gray-500">データ活用</button>
+                <button onclick="switchTab('random')" id="tab-random" class="flex-1 py-4 text-center font-bold text-gray-500">抽出</button>
             </div>
 
             <!-- Display Area -->
-            <div id="display-section" class="p-3 pb-1 shrink-0">
-                <div id="display-container" class="bg-gray-50 p-3 rounded-xl mb-1 text-right min-h-[120px] flex flex-col justify-end border">
+            <div id="display-section" class="p-4 bg-white shrink-0">
+                <div id="display-container" class="bg-gray-50 p-4 rounded-xl border flex flex-col justify-end min-h-[150px]">
                     <div id="sci-display-wrapper">
-                        <!-- Enterキー対応のためイベント追加 -->
-                        <div id="display-input-editor" contenteditable="true" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();execResult();}">0</div>
-                        <div id="math-result-area" class="mt-1 text-3xl font-bold text-blue-600 min-h-[1.5em] flex justify-end items-center"></div>
+                        <div id="display-input-editor" contenteditable="true" spellcheck="false">0</div>
+                        <div id="math-result-area" class="mt-2 text-3xl font-bold text-blue-600 min-h-[1.5em] flex justify-end items-center text-right break-all"></div>
                     </div>
                     
-                    <div id="py-display-wrapper" class="hidden py-2">
-                        <div class="flex gap-2 items-center">
-                            <input type="text" id="py-a" class="w-full border p-2 text-center rounded" onfocus="handlePyFocus('py-a')" oninput="handlePyInput()" placeholder="底辺 a">
-                            <input type="text" id="py-b" class="w-full border p-2 text-center rounded" onfocus="handlePyFocus('py-b')" oninput="handlePyInput()" placeholder="高さ b">
-                            <input type="text" id="py-c" class="w-full border p-2 text-center rounded" onfocus="handlePyFocus('py-c')" oninput="handlePyInput()" placeholder="斜辺 c">
+                    <div id="py-display-wrapper" class="hidden">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="text-center">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">底辺 a</label>
+                                <input type="text" id="py-a" class="w-full border p-4 text-center rounded-xl text-xl font-bold bg-white outline-none" oninput="handlePyInput('a')" onfocus="handlePyFocus('a')">
+                            </div>
+                            <div class="text-center">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">高さ b</label>
+                                <input type="text" id="py-b" class="w-full border p-4 text-center rounded-xl text-xl font-bold bg-white outline-none" oninput="handlePyInput('b')" onfocus="handlePyFocus('b')">
+                            </div>
+                            <div class="text-center">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase">斜辺 c</label>
+                                <input type="text" id="py-c" class="w-full border p-4 text-center rounded-xl text-xl font-bold bg-white outline-none" oninput="handlePyInput('c')" onfocus="handlePyFocus('c')">
+                            </div>
                         </div>
-                        <div class="text-[10px] text-gray-400 mt-2 text-center">a² + b² = c²</div>
                     </div>
 
                     <div id="random-display-wrapper" class="hidden text-right">
-                        <div id="random-results" class="text-xl font-bold text-blue-700 break-all mb-2">抽出結果</div>
-                        <button id="copy-btn" onclick="copyRandom()" class="hidden text-xs bg-gray-200 px-3 py-1 rounded-full hover:bg-gray-300">結果をコピー</button>
+                        <div id="random-results" class="text-2xl font-bold text-blue-700 break-all mb-2 min-h-[3rem]">抽出結果...</div>
                     </div>
                 </div>
             </div>
 
             <!-- Content Area -->
-            <div id="main-content" class="flex-1 p-0 overflow-hidden relative">
+            <div id="main-content" class="flex-1 relative overflow-hidden bg-white">
                 <div id="calc-buttons-container" class="h-full">
-                    <div id="button-grid" class="grid tight-grid h-full">
-                        <!-- ボタンはJSで生成 -->
-                    </div>
+                    <div id="button-grid" class="grid tight-grid"></div>
                 </div>
 
-                <!-- 統計・抽出エリア -->
                 <div id="stats-content" class="hidden absolute inset-0 bg-white overflow-y-auto p-4 space-y-4">
                     <div class="stats-card">
-                        <label class="block text-xs font-bold text-gray-500 mb-1">数値データ入力 (カンマ区切り)</label>
-                        <textarea id="stats-data-input" class="data-input" placeholder="例: 10, 22, 15, 30, 45..." oninput="updateStats()"></textarea>
+                        <h4 class="text-xs font-bold text-gray-500 mb-2">数値データ入力 (カンマまたはスペース区切り)</h4>
+                        <textarea id="stats-data-input" class="data-input" placeholder="例: 10, 20, 30..." oninput="updateStats()"></textarea>
                     </div>
-
-                    <div class="stats-card">
-                        <div class="flex items-center justify-between mb-1">
-                            <h4 class="text-xs font-bold">ヒストグラム・度数分布</h4>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[10px]">階級幅:</span>
-                                <input type="number" id="bin-width-input" value="10" class="w-12 border rounded px-1 text-[10px]" oninput="updateStats()">
-                                <label class="flex items-center gap-1 text-[10px]"><input type="checkbox" id="show-freq-poly" onchange="updateStats()"> 多角形</label>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div class="stats-card lg:col-span-2">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-sm font-bold">ヒストグラム / 多角形</h4>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1 text-xs">階級幅: <input type="number" id="bin-width-input" value="10" class="w-12 border px-1" oninput="updateStats()"></div>
+                                    <label class="flex items-center gap-1 text-xs"><input type="checkbox" id="show-freq-poly" onchange="updateStats()"> 折れ線表示</label>
+                                </div>
                             </div>
+                            <div class="h-64"><canvas id="stats-chart"></canvas></div>
                         </div>
-                        <div class="flex gap-2 h-40">
-                            <div class="w-1/3 overflow-y-auto border rounded text-[10px]">
-                                <table id="stat-freq-table" class="w-full text-center border-collapse"></table>
-                            </div>
-                            <div class="w-2/3 relative">
-                                <canvas id="stats-chart"></canvas>
-                            </div>
+                        <div class="stats-card">
+                            <h4 class="text-sm font-bold mb-2">度数分布表</h4>
+                            <div class="overflow-y-auto max-h-64"><table id="stat-freq-table"></table></div>
                         </div>
                     </div>
-
-                    <div class="stats-card flex gap-4 h-48">
-                        <div class="flex-1 flex flex-col">
-                            <h4 class="text-xs font-bold mb-1">箱ひげ図</h4>
-                            <div class="flex-1 relative">
-                                <canvas id="box-plot-canvas"></canvas>
-                            </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div class="stats-card h-80">
+                            <h4 class="text-sm font-bold mb-2">箱ひげ図</h4>
+                            <div class="h-full"><canvas id="box-plot-canvas"></canvas></div>
                         </div>
-                        <div class="w-32 flex flex-col justify-center border-l pl-2">
-                            <h4 class="text-[10px] font-bold text-gray-400 mb-1 text-center">統計サマリー</h4>
-                            <div id="stats-summary-list" class="summary-text text-xs"></div>
+                        <div class="stats-card">
+                            <h4 class="text-sm font-bold mb-2">統計サマリー</h4>
+                            <div id="stats-summary-list" class="summary-text p-3 bg-gray-50 rounded border"></div>
                         </div>
                     </div>
                 </div>
 
                 <div id="random-settings" class="hidden absolute inset-0 bg-gray-50 p-4">
-                    <div class="max-w-xl mx-auto bg-white p-6 rounded-xl shadow-sm border space-y-4">
-                        <div class="grid grid-cols-3 gap-4">
-                            <div><label class="text-xs text-gray-400 block mb-1">最小値</label><input type="number" id="rand-min" value="1" class="w-full p-2 border rounded"></div>
-                            <div><label class="text-xs text-gray-400 block mb-1">最大値</label><input type="number" id="rand-max" value="100" class="w-full p-2 border rounded"></div>
-                            <div><label class="text-xs text-gray-400 block mb-1">個数</label><input type="number" id="rand-count" value="50" class="w-full p-2 border rounded"></div>
+                    <div class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-sm border space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><label class="text-xs font-bold">最小</label><input type="number" id="rand-min" value="1" class="w-full p-3 border rounded-xl"></div>
+                            <div><label class="text-xs font-bold">最大</label><input type="number" id="rand-max" value="100" class="w-full p-3 border rounded-xl"></div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <input type="checkbox" id="rand-unique" checked> <label for="rand-unique" class="text-sm">重複を許可しない</label>
+                        <div><label class="text-xs font-bold">抽出個数</label><input type="number" id="rand-count" value="50" class="w-full p-3 border rounded-xl"></div>
+                        <label class="flex items-center gap-2 text-sm"><input type="checkbox" id="rand-unique" checked> 重複を許可しない</label>
+                        <div class="flex gap-2">
+                            <button onclick="extractRandom()" class="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold">抽出</button>
+                            <button id="copy-btn" onclick="copyRandom()" class="hidden bg-gray-200 px-6 rounded-xl font-bold">コピー</button>
                         </div>
-                        <button onclick="extractRandom()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold">抽出開始</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- History -->
-        <div id="history-container" class="w-full md:w-64 bg-gray-50 p-3 border-t md:border-t-0 flex flex-col h-full overflow-hidden">
-            <h3 class="font-bold text-gray-700 text-xs border-b mb-2 pb-1">計算履歴</h3>
-            <div id="history-list" class="flex-1 overflow-y-auto space-y-2 text-[11px]"></div>
+        <div id="history-container" class="w-80 bg-gray-50 flex flex-col border-l shrink-0">
+            <div class="p-4 border-b bg-white flex justify-between items-center">
+                <h3 class="font-bold text-sm">履歴</h3>
+                <button onclick="clearHistory()" class="text-xs text-red-500">全消去</button>
+            </div>
+            <div id="history-list" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
         </div>
     </div>
 
     <script>
-        let currentTab = 'scientific';
-        let statsChart = null;
         const editor = document.getElementById('display-input-editor');
         const resultArea = document.getElementById('math-result-area');
-        
-        const mathParser = math.create(math.all, { predictable: false, implicitMultiplication: 'always' });
+        const mathParser = math.create(math.all);
+        let currentTab = 'scientific';
+        let statsChart = null;
+        let lastPyCalculatedField = null;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { 
+                e.preventDefault(); 
+                if (currentTab === 'scientific') execResult(); 
+            }
+        });
 
         const buttonLayout = [
-            { type: 'custom-config', span: 'col-span-2' },
+            { type: 'config', span: 'col-span-2' },
             { label: 'Copy', action: "copyCalcResult()", type: 'ctrl', color: 'bg-blue-50 text-blue-600' },
             { label: 'Paste', action: "pasteToEditor()", type: 'ctrl', color: 'bg-blue-50 text-blue-600' },
             { label: 'AC', action: "clearAll()", type: 'ctrl', color: 'bg-red-50 text-red-600' },
-
             { label: '√', action: "insertText('√')", type: 'op' },
             { label: '^', action: "insertText('^')", type: 'sci' },
             { label: '!', action: "insertText('!')", type: 'sci' },
             { label: '(', action: "insertText('(')", type: 'sci' },
             { label: ')', action: "insertText(')')", type: 'sci' },
-
             { label: '7', action: "insertText('7')", type: 'num' },
             { label: '8', action: "insertText('8')", type: 'num' },
             { label: '9', action: "insertText('9')", type: 'num' },
             { label: '÷', action: "insertText('÷')", type: 'op' },
             { label: '⌫', action: "backspace()", type: 'ctrl', color: 'bg-orange-50 text-orange-600' },
-
             { label: '4', action: "insertText('4')", type: 'num' },
             { label: '5', action: "insertText('5')", type: 'num' },
             { label: '6', action: "insertText('6')", type: 'num' },
             { label: '×', action: "insertText('×')", type: 'op' },
             { label: '←', action: "moveCursor(-1)", type: 'ctrl' },
-
             { label: '1', action: "insertText('1')", type: 'num' },
             { label: '2', action: "insertText('2')", type: 'num' },
             { label: '3', action: "insertText('3')", type: 'num' },
             { label: '-', action: "insertText('-')", type: 'op' },
             { label: '→', action: "moveCursor(1)", type: 'ctrl' },
-
-            { label: '□/□', action: "insertFraction()", type: 'sci' },
+            { label: '□/□', action: "insertFraction()", type: 'sci', color: 'bg-blue-50 text-blue-600' },
             { label: '0', action: "insertText('0')", type: 'num' },
             { label: '.', action: "insertText('.')", type: 'num' },
             { label: '+', action: "insertText('+')", type: 'op' },
@@ -263,24 +267,24 @@
 
         function switchTab(tab) {
             currentTab = tab;
-            document.querySelectorAll('[id^="tab-"]').forEach(t => t.className = 'flex-1 py-3 text-center font-semibold text-gray-500 hover:bg-gray-50');
-            document.getElementById(`tab-${tab}`).className = 'flex-1 py-3 text-center font-semibold tab-active';
+            document.querySelectorAll('[id^="tab-"]').forEach(t => t.className = 'flex-1 py-4 text-center font-bold text-gray-500 hover:bg-gray-100 transition-colors');
+            document.getElementById(`tab-${tab}`).className = 'flex-1 py-4 text-center font-bold tab-active';
             
-            const ids = ['display-section', 'calc-buttons-container', 'stats-content', 'random-settings', 'sci-display-wrapper', 'py-display-wrapper', 'random-display-wrapper'];
-            ids.forEach(id => document.getElementById(id).classList.add('hidden'));
+            ['calc-buttons-container', 'stats-content', 'random-settings', 'sci-display-wrapper', 'py-display-wrapper', 'random-display-wrapper'].forEach(id => document.getElementById(id).classList.add('hidden'));
+            const displaySection = document.getElementById('display-section');
+            displaySection.classList.remove('hidden');
 
             if (tab === 'scientific') {
-                document.getElementById('display-section').classList.remove('hidden');
                 document.getElementById('sci-display-wrapper').classList.remove('hidden');
                 document.getElementById('calc-buttons-container').classList.remove('hidden');
             } else if (tab === 'pythagoras') {
-                document.getElementById('display-section').classList.remove('hidden');
                 document.getElementById('py-display-wrapper').classList.remove('hidden');
                 document.getElementById('calc-buttons-container').classList.remove('hidden');
             } else if (tab === 'stats') {
+                displaySection.classList.add('hidden');
                 document.getElementById('stats-content').classList.remove('hidden');
+                updateStats();
             } else if (tab === 'random') {
-                document.getElementById('display-section').classList.remove('hidden');
                 document.getElementById('random-display-wrapper').classList.remove('hidden');
                 document.getElementById('random-settings').classList.remove('hidden');
             }
@@ -288,76 +292,135 @@
         }
 
         function renderButtons() {
-            const grid = document.getElementById('button-grid'); grid.innerHTML = '';
+            const grid = document.getElementById('button-grid'); 
+            grid.innerHTML = '';
             buttonLayout.forEach(btn => {
-                if (btn.type === 'custom-config') {
+                if (btn.type === 'config') {
                     const div = document.createElement('div');
-                    div.className = "flex justify-center items-center bg-gray-50 text-[10px] gap-2 px-1 " + btn.span;
+                    div.className = "flex flex-row justify-center items-center bg-gray-50 text-[10px] gap-2 px-1 border-b border-r col-span-2";
                     div.innerHTML = `
-                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="pref-fraction" onchange="execResult()"> 分数優先</label>
-                        <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="pref-root" checked onchange="execResult()"> √優先</label>
+                        <label class="flex items-center gap-1 cursor-pointer select-none"><input type="checkbox" id="pref-fraction" onchange="execResult()"> 分数優先</label>
+                        <label class="flex items-center gap-1 cursor-pointer select-none"><input type="checkbox" id="pref-root" checked onchange="execResult()"> √優先</label>
                     `;
                     grid.appendChild(div);
                     return;
                 }
                 const b = document.createElement('button');
-                let color = btn.color || (['op', 'sci'].includes(btn.type) ? 'bg-gray-100 text-orange-500' : 'bg-white text-gray-800');
-                b.className = `calc-btn ${btn.span || ''} ${color} border-r border-b`;
+                b.className = `calc-btn ${btn.span || ''} ${btn.color || 'bg-white text-gray-800'}`;
                 b.innerText = btn.label;
-                b.onclick = () => eval(btn.action);
+                
+                b.onmousedown = (e) => {
+                    e.preventDefault(); 
+                    if (btn.action.startsWith('insertText')) {
+                        insertText(btn.action.match(/'(.*)'/)[1]);
+                    } else {
+                        eval(btn.action);
+                    }
+                };
                 grid.appendChild(b);
             });
         }
 
-        function insertText(text) {
-            if (!editor.contains(window.getSelection().anchorNode)) editor.focus();
-            if (editor.innerText === '0' && !['.', '!', '^', ')'].includes(text)) editor.innerHTML = '';
-            document.execCommand('insertHTML', false, text);
+        // フォーカスの位置を把握して正しい場所に挿入する
+        function insertText(t) {
+            if (currentTab === 'pythagoras') {
+                const active = document.activeElement;
+                if (active && active.id && active.id.startsWith('py-')) {
+                    if (active.classList.contains('py-answer-mode')) {
+                        clearPy();
+                        document.getElementById(active.id).focus();
+                    }
+                    const start = active.selectionStart;
+                    const end = active.selectionEnd;
+                    active.value = active.value.substring(0, start) + t + active.value.substring(end);
+                    active.selectionStart = active.selectionEnd = start + t.length;
+                    active.dispatchEvent(new Event('input'));
+                }
+                return;
+            }
+
+            const sel = window.getSelection();
+            let focusNode = sel.anchorNode;
+            if (focusNode && focusNode.nodeType === 3) focusNode = focusNode.parentNode;
+            
+            // 現在のフォーカスがeditor内にない場合のみ、editor本体にフォーカスを当てる
+            if (!editor.contains(focusNode)) {
+                editor.focus();
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+
+            // 初期状態の0を消す（分数の枠内の0は消さない）
+            if (editor.innerHTML === '0' && !['.', '!', '^', ')'].includes(t)) {
+                editor.innerHTML = '';
+            }
+
+            document.execCommand('insertText', false, t);
         }
 
         function insertFraction() {
+            const sel = window.getSelection();
+            let focusNode = sel.anchorNode;
+            if (focusNode && focusNode.nodeType === 3) focusNode = focusNode.parentNode;
+            
+            if (!editor.contains(focusNode)) editor.focus();
             if (editor.innerText === '0') editor.innerHTML = '';
-            // 空白除去
-            document.execCommand('insertHTML', false, `<span class="input-frac" contenteditable="false"><span class="num" contenteditable="true"></span><span class="den" contenteditable="true"></span></span>`);
+            
+            const id = 'frac-' + Date.now();
+            const html = `<span class="input-frac" id="${id}" contenteditable="false"><span class="num" contenteditable="true"></span><span class="den" contenteditable="true"></span></span>&nbsp;`;
+            document.execCommand('insertHTML', false, html);
+            
             setTimeout(() => {
-                const fracs = editor.querySelectorAll('.input-frac');
-                const lastFrac = fracs[fracs.length - 1];
-                if(lastFrac) lastFrac.querySelector('.num').focus();
-            }, 0);
-        }
-        
-        function backspace() { document.execCommand('delete', false, null); }
-        function clearAll() { editor.innerHTML = '0'; resultArea.innerHTML = ''; }
-        function moveCursor(dir) { window.getSelection().modify("move", dir > 0 ? "forward" : "backward", "character"); }
-
-        // Copy/Paste Logic
-        function copyCalcResult() {
-            const text = resultArea.innerText;
-            if(!text) return;
-            const el = document.createElement('textarea');
-            el.value = text; document.body.appendChild(el); el.select();
-            try { document.execCommand('copy'); showMsg('コピーしました'); } 
-            catch(e) { showMsg('コピー失敗'); }
-            document.body.removeChild(el);
+                const frac = document.getElementById(id);
+                if (frac) {
+                    frac.removeAttribute('id');
+                    const num = frac.querySelector('.num');
+                    num.focus();
+                }
+            }, 10);
         }
 
-        async function pasteToEditor() {
-            // フォーカスを当ててCtrl+Vを促す
-            editor.focus();
-            try {
-                const text = await navigator.clipboard.readText();
-                if(text) insertText(text);
-            } catch(e) {
-                showMsg('「Ctrl+V」で貼り付けてください');
+        function backspace() { 
+            if (currentTab === 'pythagoras') {
+                const active = document.activeElement;
+                if (active && active.id.startsWith('py-')) {
+                    const start = active.selectionStart;
+                    if (start > 0) {
+                        active.value = active.value.substring(0, start - 1) + active.value.substring(start);
+                        active.selectionStart = active.selectionEnd = start - 1;
+                        active.dispatchEvent(new Event('input'));
+                    }
+                }
+                return;
             }
+
+            const sel = window.getSelection();
+            let focusNode = sel.anchorNode;
+            if (focusNode && focusNode.nodeType === 3) focusNode = focusNode.parentNode;
+            if (!editor.contains(focusNode)) {
+                editor.focus();
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+            document.execCommand('delete', false, null); 
         }
 
-        function showMsg(m) {
-            const b = document.getElementById('msg-box'); 
-            b.innerText = m; 
-            b.style.display = 'block'; 
-            b.style.opacity = '1';
-            setTimeout(() => { b.style.opacity = '0'; setTimeout(()=>b.style.display='none', 300); }, 2000);
+        function clearAll() { 
+            if (currentTab === 'pythagoras') { clearPy(); return; }
+            editor.innerHTML = '0'; resultArea.innerHTML = ''; 
+        }
+
+        function moveCursor(dir) {
+            const sel = window.getSelection();
+            if(sel.rangeCount > 0){
+                sel.modify("move", dir > 0 ? "forward" : "backward", "character");
+            }
         }
 
         function getFormula() {
@@ -368,269 +431,360 @@
                     else if (node.classList && node.classList.contains('input-frac')) {
                         const n = node.querySelector('.num').innerText.trim() || '0';
                         const d = node.querySelector('.den').innerText.trim() || '1';
-                        if (formula.length > 0 && /[0-9]/.test(formula.trim().slice(-1))) formula += " + ";
+                        if (formula.length > 0 && /[0-9]/.test(formula.trim().slice(-1))) formula += "+";
                         formula += `((${n})/(${d}))`;
                     } else if (node.hasChildNodes()) traverse(node.childNodes);
                 });
             };
             traverse(editor.childNodes);
-            return formula.replace(/\u200B/g, '')
-                          .replace(/√(\d+\.?\d*)/g, 'sqrt($1)')
-                          .replace(/√/g, 'sqrt')
-                          .replace(/×/g, '*')
-                          .replace(/÷/g, '/');
+            return formula.replace(/\u200B/g, '').replace(/√(\d+\.?\d*)/g, 'sqrt($1)').replace(/√/g, 'sqrt').replace(/×/g, '*').replace(/÷/g, '/');
+        }
+
+        // nerdamerの出力をHTMLフォーマットに変換
+        function formatNerdamerOutput(str, isInputTarget = false) {
+            let s = str;
+            s = s.replace(/sqrt\(([^)]+)\)/g, '√$1');
+            s = s.replace(/(\d+)\s*\*\s*√/g, '$1√');
+            s = s.replace(/\*/g, '×');
+            
+            if (!isInputTarget) {
+                // (a+b)/c の形
+                s = s.replace(/\(([^)]+)\)\/([0-9a-zA-Z√]+)/g, '<span class="math-frac"><span class="num">$1</span><span class="den">$2</span></span>');
+                // a/b の形
+                s = s.replace(/([0-9a-zA-Z√]+)\/([0-9a-zA-Z√]+)/g, '<span class="math-frac"><span class="num">$1</span><span class="den">$2</span></span>');
+                s = s.replace(/\//g, '÷'); // 残ったスラッシュは割り算記号へ
+            }
+            return s;
+        }
+
+        function formatVal(v, useFrac, useRoot) {
+            if (typeof v !== 'number') return v.toString();
+            if (useFrac) {
+                try {
+                    const f = math.fraction(v);
+                    if (f.d !== 1 && f.d < 10000) return `<span class="math-frac"><span class="num">${f.s * f.n}</span><span class="den">${f.d}</span></span>`;
+                } catch {}
+            }
+            return parseFloat(v.toFixed(10)).toString();
         }
 
         function execResult() {
             try {
-                const raw = getFormula();
-                const result = mathParser.evaluate(raw);
-                
-                const useFrac = document.getElementById('pref-fraction').checked;
+                const rawFormula = getFormula();
+                if (!rawFormula.trim() || rawFormula === '0') return;
+
                 const useRoot = document.getElementById('pref-root').checked;
-                let displayHtml = formatVal(result, useFrac, useRoot);
-                resultArea.innerHTML = displayHtml;
-                addToHistory(editor.innerHTML, displayHtml);
-            } catch (e) { 
-                resultArea.innerHTML = '<span class="text-red-500 text-xs">ERROR</span>'; 
-            }
-        }
+                const useFrac = document.getElementById('pref-fraction').checked;
 
-        function formatVal(val, useFrac, useRoot) {
-            // 小数点以下の誤差丸め
-            if (typeof val === 'number') val = parseFloat(val.toFixed(12));
+                let display = "";
 
-            if (useRoot && typeof val === 'number') {
-                const simp = trySimplifySqrt(val);
-                if (simp) return simp;
-            }
-            if (useFrac && typeof val === 'number') {
-                try {
-                    const f = math.fraction(val);
-                    if (f.d !== 1 && f.d < 10000) {
-                        // 根の有理化チェック: 分母にルートが必要なら有理化
-                        // math.fractionは整数比を返すので、単純な有理化(1/√2 -> √2/2)はこのロジックには乗らない
-                        // ここでは単なる分数表示
-                        return `<span class="math-frac"><span class="num">${f.s * f.n}</span><span class="den">${f.d}</span></span>`;
-                    }
-                } catch {}
-            }
-            return (typeof val === 'number') ? parseFloat(val.toFixed(10)).toString() : val.toString();
-        }
+                if (useRoot || useFrac) {
+                    try {
+                        let eq = nerdamer(rawFormula);
+                        let textRes = eq.text('fractions'); // 8+2*sqrt(2) などの形式で取得
 
-        function trySimplifySqrt(n) {
-            const tol = 1e-9;
-            // 単純な整数や小数の場合はルートにしない (例: 13.5)
-            if (Math.abs(Math.round(n) - n) < tol) return null; // 整数
-            if (Math.abs(n * 2 - Math.round(n * 2)) < tol) return null; // .5系 (1/2, 3/2)
-
-            // 分母の有理化を含む探索 (n = a/b * √c)
-            // n^2 = (a^2/b^2) * c
-            const sq = n * n;
-            try {
-                const f = math.fraction(sq);
-                if (f.d < 1000) { // 分母があまりに大きくない場合
-                    // sq = num/den.  sqrt(num/den) = sqrt(num*den) / den
-                    const num = f.s * f.n;
-                    const den = f.d;
-                    const inside = num * den;
-                    
-                    // insideを k^2 * m に分解
-                    let m = inside;
-                    let k = 1;
-                    for (let i = 2; i * i <= m; i++) {
-                        while (m % (i * i) === 0) {
-                            k *= i;
-                            m /= (i * i);
+                        const hasSqrt = textRes.includes('sqrt');
+                        
+                        if (!useRoot && hasSqrt) {
+                            // √を使わない設定なのに結果に√が含まれる場合はmath.jsで小数化
+                            display = formatVal(mathParser.evaluate(rawFormula), useFrac, false);
+                        } else if (!useFrac && textRes.includes('/') && !hasSqrt) {
+                            // 分数を使わない設定で、ルートもない場合は小数化
+                            display = formatVal(mathParser.evaluate(rawFormula), false, false);
+                        } else {
+                            // シンボリック計算の結果を整形して表示
+                            display = formatNerdamerOutput(textRes, false);
                         }
+                    } catch (err) {
+                        display = formatVal(mathParser.evaluate(rawFormula), useFrac, useRoot);
                     }
-                    // 結果: (k * sqrt(m)) / den
-                    // 約分
-                    const gcdVal = math.gcd(k, den);
-                    const numCoeff = k / gcdVal;
-                    const denFinal = den / gcdVal;
-
-                    if (m === 1) return null; // 結局有理数だった
-
-                    const numStr = numCoeff === 1 ? "" : numCoeff;
-                    const denHtml = denFinal === 1 ? "" : `<span class="math-frac"><span class="num">${numStr}√${m}</span><span class="den">${denFinal}</span></span>`;
-                    
-                    if (denFinal === 1) return `${numStr}√${m}`;
-                    return denHtml;
+                } else {
+                    display = formatVal(mathParser.evaluate(rawFormula), false, false);
                 }
-            } catch(e) {}
 
-            return null;
+                resultArea.innerHTML = display;
+                addToHistory(editor.innerHTML, display);
+            } catch (e) { 
+                resultArea.innerHTML = '<span class="text-red-500 text-xs">Error</span>'; 
+            }
         }
 
-        function addToHistory(html, res) {
-            const item = document.createElement('div');
-            item.className = 'bg-white p-2 rounded shadow-sm border-l-2 border-blue-400 cursor-pointer hover:bg-gray-100';
-            item.innerHTML = `<div class="truncate text-gray-400 text-[10px]">${html}</div><div class="font-bold text-blue-600 text-right">= ${res}</div>`;
-            item.onclick = () => { editor.innerHTML = html; execResult(); };
-            document.getElementById('history-list').prepend(item);
+        function addToHistory(h, r) {
+            const div = document.createElement('div');
+            div.className = 'bg-white p-3 rounded-xl shadow-sm border border-gray-100 cursor-pointer';
+            div.innerHTML = `<div class="truncate text-gray-400 text-[10px] mb-1">${h}</div><div class="font-bold text-blue-600 text-right text-lg">= ${r}</div>`;
+            div.onclick = () => { editor.innerHTML = h; execResult(); };
+            document.getElementById('history-list').prepend(div);
         }
 
-        // Pythagoras
+        function clearHistory() { document.getElementById('history-list').innerHTML = ''; }
+
+        // --- PYTHAGORAS ---
+        function clearPy() {
+            ['py-a', 'py-b', 'py-c'].forEach(id => {
+                const el = document.getElementById(id);
+                el.value = "";
+                el.classList.remove('py-answer-mode');
+            });
+            lastPyCalculatedField = null;
+        }
+
         function handlePyFocus(id) {
             const el = document.getElementById(id);
-            if (el.classList.contains('py-result')) {
-                // 結果フィールドを触ろうとしたら全クリア
-                ['py-a','py-b','py-c'].forEach(k => { 
-                    const i = document.getElementById(k); i.value = ''; i.classList.remove('py-result'); 
-                });
+            if (el.classList.contains('py-answer-mode')) {
+                clearPy();
             }
         }
-        function handlePyInput() {
-            // 他の2つが埋まっているか確認
-            const fA = document.getElementById('py-a');
-            const fB = document.getElementById('py-b');
-            const fC = document.getElementById('py-c');
-            
-            // 入力中ならresultクラスを外す
-            if(document.activeElement === fA) fA.classList.remove('py-result');
-            if(document.activeElement === fB) fB.classList.remove('py-result');
-            if(document.activeElement === fC) fC.classList.remove('py-result');
 
-            const a = evalExpr(fA.value);
-            const b = evalExpr(fB.value);
-            const c = evalExpr(fC.value);
+        function handlePyInput(id) {
+            const fa = document.getElementById('py-a'), fb = document.getElementById('py-b'), fc = document.getElementById('py-c');
             
-            const setRes = (el, val) => {
-                const t = document.createElement('div'); 
-                // Pythagoras result formatting
-                const useRoot = document.getElementById('pref-root').checked;
-                const simp = useRoot ? trySimplifySqrt(val) : null;
-                el.value = simp ? (new DOMParser().parseFromString(simp, 'text/html').body.textContent) : parseFloat(val.toFixed(8));
-                
-                // HTML分数タグが含まれる場合の簡易テキスト化（inputにはHTML入らないため）
-                if (simp && simp.includes('math-frac')) {
-                     // 簡易的なテキスト表現に置換 (例: 3√2/2)
-                     el.value = val.toFixed(4); // inputタグなので近似値を入れるか、別途表示が必要だが、ここでは近似値
-                } else if(simp) {
-                    el.value = simp;
+            if (lastPyCalculatedField && lastPyCalculatedField !== 'py-'+id) {
+                const last = document.getElementById(lastPyCalculatedField);
+                if (last && last.classList.contains('py-answer-mode')) {
+                    last.classList.remove('py-answer-mode');
                 }
+            }
 
-                el.classList.add('py-result');
+            const useRoot = document.getElementById('pref-root').checked;
+            const useFrac = document.getElementById('pref-fraction').checked;
+
+            const formatRes = (formulaStr) => {
+                try {
+                    let eq = nerdamer(formulaStr);
+                    if (useRoot || useFrac) {
+                        let textRes = eq.text('fractions');
+                        if (!useRoot && textRes.includes('sqrt')) {
+                            return parseFloat(Number(nerdamer(formulaStr).evaluate().text()).toFixed(10)).toString();
+                        }
+                        return formatNerdamerOutput(textRes, true); // input用のためタグ無し
+                    } else {
+                        return parseFloat(Number(nerdamer(formulaStr).evaluate().text()).toFixed(10)).toString();
+                    }
+                } catch(e) { return ""; }
             };
 
-            // activeElement以外を計算
-            if (document.activeElement !== fC && !isNaN(a) && !isNaN(b)) setRes(fC, Math.sqrt(a*a+b*b));
-            else if (document.activeElement !== fB && !isNaN(a) && !isNaN(c) && c > a) setRes(fB, Math.sqrt(c*c-a*a));
-            else if (document.activeElement !== fA && !isNaN(b) && !isNaN(c) && c > b) setRes(fA, Math.sqrt(c*c-b*b));
-        }
-        function evalExpr(v) { try { if(!v.trim()) return NaN; return mathParser.evaluate(v.replace(/√/g, 'sqrt').replace(/×/g, '*').replace(/÷/g, '/')); } catch { return NaN; } }
+            const getEqStr = (val) => {
+                if(!val) return '';
+                return val.replace(/√(\d+)/g, 'sqrt($1)')
+                          .replace(/√\(([^)]+)\)/g, 'sqrt($1)')
+                          .replace(/×/g, '*')
+                          .replace(/÷/g, '/');
+            };
 
-        // Stats Logic
+            try {
+                const aReady = fa.value.trim() !== "";
+                const bReady = fb.value.trim() !== "";
+                const cReady = fc.value.trim() !== "";
+
+                let target = null;
+                if (aReady && bReady && !cReady) target = 'c';
+                else if (aReady && cReady && !bReady) target = 'b';
+                else if (bReady && cReady && !aReady) target = 'a';
+                
+                if (!target && lastPyCalculatedField && lastPyCalculatedField !== 'py-'+id) {
+                   if(lastPyCalculatedField === 'py-c' && aReady && bReady) target = 'c';
+                   else if(lastPyCalculatedField === 'py-b' && aReady && cReady) target = 'b';
+                   else if(lastPyCalculatedField === 'py-a' && bReady && cReady) target = 'a';
+                }
+
+                const setRes = (el, formulaStr) => {
+                    const res = formatRes(formulaStr);
+                    if(res) {
+                        el.value = res;
+                        el.classList.add('py-answer-mode');
+                    }
+                };
+
+                if (target === 'c') { setRes(fc, `sqrt((${getEqStr(fa.value)})^2 + (${getEqStr(fb.value)})^2)`); lastPyCalculatedField = 'py-c'; }
+                else if (target === 'b') { setRes(fb, `sqrt((${getEqStr(fc.value)})^2 - (${getEqStr(fa.value)})^2)`); lastPyCalculatedField = 'py-b'; }
+                else if (target === 'a') { setRes(fa, `sqrt((${getEqStr(fc.value)})^2 - (${getEqStr(fb.value)})^2)`); lastPyCalculatedField = 'py-a'; }
+
+            } catch (e) {
+                // エラーは無視して入力を続行させる
+            }
+        }
+
+        // --- STATS ---
         function updateStats() {
-            const input = document.getElementById('stats-data-input').value;
-            const data = input.split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
-            if (data.length === 0) return;
+            const inputTxt = document.getElementById('stats-data-input').value;
+            const data = inputTxt.split(/[\s,]+/).filter(s => s.trim() !== "").map(Number).filter(n => !isNaN(n));
+            const ctx = document.getElementById('stats-chart').getContext('2d');
+            
+            if (statsChart) statsChart.destroy();
+            
+            if (data.length === 0) {
+                document.getElementById('stat-freq-table').innerHTML = "";
+                document.getElementById('stats-summary-list').innerText = "";
+                const boxCanvas = document.getElementById('box-plot-canvas');
+                boxCanvas.getContext('2d').clearRect(0,0,boxCanvas.width,boxCanvas.height);
+                statsChart = new Chart(ctx, { type: 'bar', data: { labels: [], datasets: [] } });
+                return;
+            }
+
             const sorted = [...data].sort((a,b)=>a-b);
             const avg = math.mean(data), med = math.median(data), min = sorted[0], max = sorted[sorted.length-1], q1 = math.quantileSeq(data, 0.25), q3 = math.quantileSeq(data, 0.75);
             
-            const fmt = (n) => parseFloat(n.toFixed(3));
-            document.getElementById('stats-summary-list').innerText = 
-                `最大値   :${fmt(max)}\n` +
-                `第3四分位:${fmt(q3)}\n` +
-                `第2四分位:${fmt(med)}\n` +
-                `第1四分位:${fmt(q1)}\n` +
-                `最小値   :${fmt(min)}\n` +
-                `平均値   :${fmt(avg)}`;
+            document.getElementById('stats-summary-list').innerText = `最大値: ${max}\n第3四分位数: ${q3}\n中央値: ${med}\n第1四分位数: ${q1}\n最小値: ${min}\n平均値: ${avg.toFixed(3)}`;
             
             const binW = parseFloat(document.getElementById('bin-width-input').value) || 10;
             const showPoly = document.getElementById('show-freq-poly').checked;
-            const start = Math.floor(min / binW) * binW;
-            const bins = [];
-            for (let i = start; i < max + binW; i += binW) {
-                bins.push({ label: `${i}～`, count: data.filter(d => d >= i && d < i + binW).length });
-            }
-            // Add Total Row
-            const totalCount = bins.reduce((sum, b) => sum + b.count, 0);
-            document.getElementById('stat-freq-table').innerHTML = 
-                `<tr><th>階級</th><th>度数</th></tr>` + 
-                bins.map(b => `<tr><td>${b.label}</td><td>${b.count}</td></tr>`).join('') +
-                `<tr class="bg-gray-100 font-bold"><td>合計</td><td>${totalCount}</td></tr>`;
+            
+            const minVal = Math.min(...data);
+            const maxVal = Math.max(...data);
+            const start = Math.floor(minVal / binW) * binW;
+            const end = Math.ceil(maxVal / binW) * binW + (maxVal % binW === 0 ? binW : 0);
 
-            const ctx = document.getElementById('stats-chart').getContext('2d');
-            if (statsChart) statsChart.destroy();
+            const bins = [];
+            let totalFreq = 0;
+            
+            for (let x = start; x < end; x += binW) {
+                const count = data.filter(d => d >= x && d < x + binW).length;
+                bins.push({ x: x + binW/2, y: count, min: x, max: x + binW });
+                totalFreq += count;
+            }
+
+            let tableHtml = `<tr><th>階級</th><th>度数</th></tr>`;
+            bins.forEach(b => tableHtml += `<tr><td>${b.min}~${b.max}</td><td>${b.y}</td></tr>`);
+            tableHtml += `<tr class="total-row"><td>合計</td><td>${totalFreq}</td></tr>`;
+            document.getElementById('stat-freq-table').innerHTML = tableHtml;
+
+            const barData = bins.map(b => ({ x: b.x, y: b.y }));
+            const lineData = bins.map(b => ({ x: b.x, y: b.y }));
+
             statsChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: bins.map(b => b.label),
                     datasets: [
-                        { label:'度数', data: bins.map(b => b.count), backgroundColor: 'rgba(59, 130, 246, 0.4)', borderColor: '#3b82f6', borderWidth: 1, barPercentage: 1, categoryPercentage: 1 },
-                        ...(showPoly ? [{ label:'多角形', data: bins.map(b => b.count), type: 'line', borderColor: '#ef4444', tension: 0.1, fill: false }] : [])
+                        {
+                            label: '度数',
+                            data: barData,
+                            backgroundColor: 'rgba(59, 130, 246, 0.4)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1,
+                            barPercentage: 1.0, 
+                            categoryPercentage: 1.0
+                        },
+                        ...(showPoly ? [{
+                            type: 'line',
+                            label: '多角形',
+                            data: lineData,
+                            borderColor: '#ef4444',
+                            borderWidth: 2,
+                            tension: 0,
+                            fill: false,
+                            pointRadius: 4
+                        }] : [])
                     ]
                 },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false } }, y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        x: { 
+                            type: 'linear',
+                            offset: false,
+                            grid: { offset: false },
+                            ticks: { stepSize: binW },
+                            min: start,
+                            max: bins[bins.length-1].max
+                        },
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } } 
+                    }, 
+                    plugins: { 
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => `階級値: ${items[0].parsed.x}`,
+                                label: (item) => `度数: ${item.parsed.y}`
+                            }
+                        }
+                    } 
+                }
             });
-
             drawBoxPlot(min, q1, med, q3, max, avg);
         }
 
         function drawBoxPlot(min, q1, med, q3, max, avg) {
             const canvas = document.getElementById('box-plot-canvas');
             const ctx = canvas.getContext('2d');
-            const rect = canvas.parentNode.getBoundingClientRect();
-            canvas.width = rect.width * 2; canvas.height = rect.height * 2;
-            canvas.style.width = rect.width + 'px'; canvas.style.height = rect.height + 'px';
+            const W = canvas.parentElement.clientWidth, H = canvas.parentElement.clientHeight;
+            canvas.width = W * 2; canvas.height = H * 2;
+            canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
             ctx.scale(2, 2);
-            
-            const W = rect.width, H = rect.height, margin = 20, range = (max - min) || 1;
-            const scale = (v) => margin + ((v - min) / range) * (W - margin * 2);
-            const y = H / 2 - 10, h = 30;
-
             ctx.clearRect(0,0,W,H);
-            ctx.strokeStyle = '#333'; ctx.lineWidth = 1.2; ctx.font = '10px "Roboto Mono"';
             
-            // Box
-            ctx.strokeRect(scale(q1), y, scale(q3)-scale(q1), h);
-            // Median (Blue)
-            ctx.beginPath(); ctx.strokeStyle = '#2563eb'; ctx.moveTo(scale(med), y); ctx.lineTo(scale(med), y+h); ctx.stroke();
-            // Whiskers
-            ctx.beginPath(); ctx.strokeStyle = '#333';
-            ctx.moveTo(scale(min), y+h/2); ctx.lineTo(scale(q1), y+h/2);
-            ctx.moveTo(scale(q3), y+h/2); ctx.lineTo(scale(max), y+h/2);
-            // End Caps
-            ctx.moveTo(scale(min), y+5); ctx.lineTo(scale(min), y+h-5);
-            ctx.moveTo(scale(max), y+5); ctx.lineTo(scale(max), y+h-5);
-            ctx.stroke();
-            
-            // Avg (Green X)
-            ctx.beginPath(); ctx.strokeStyle = '#16a34a'; const ax = scale(avg);
-            ctx.moveTo(ax-4, y+h/2-4); ctx.lineTo(ax+4, y+h/2+4); ctx.moveTo(ax+4, y+h/2-4); ctx.lineTo(ax-4, y+h/2+4); ctx.stroke();
+            const margin = 50, range = (max - min) || 1;
+            const scale = (v) => margin + ((v - min) / range) * (W - margin * 2);
+            const y = H / 2, h = 40;
 
-            // Labels
-            ctx.fillStyle = '#666'; ctx.textAlign = 'center';
-            [[min,y-5],[max,y-5],[q1,y+h+12],[q3,y+h+12]].forEach(([v,py]) => ctx.fillText(parseFloat(v.toFixed(2)), scale(v), py));
-            
-            // Median Label (Blue)
-            ctx.fillStyle = '#2563eb'; ctx.fillText(parseFloat(med.toFixed(2)), scale(med), y-5);
-            // Mean Label (Green)
-            ctx.fillStyle = '#16a34a'; ctx.fillText(parseFloat(avg.toFixed(2)), ax, y+h+12);
+            ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5; ctx.font = '10px Roboto Mono'; ctx.textAlign = 'center';
+            ctx.strokeRect(scale(q1), y-h/2, scale(q3)-scale(q1), h);
+            ctx.beginPath(); ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 3;
+            ctx.moveTo(scale(med), y-h/2); ctx.lineTo(scale(med), y+h/2); ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2;
+            const mx = scale(avg), size = 6;
+            ctx.moveTo(mx - size, y - size); ctx.lineTo(mx + size, y + size);
+            ctx.moveTo(mx + size, y - size); ctx.lineTo(mx - size, y + size);
+            ctx.stroke();
+            ctx.beginPath(); ctx.strokeStyle = '#333'; ctx.lineWidth = 1.5;
+            ctx.moveTo(scale(min), y); ctx.lineTo(scale(q1), y);
+            ctx.moveTo(scale(q3), y); ctx.lineTo(scale(max), y);
+            ctx.moveTo(scale(min), y-10); ctx.lineTo(scale(min), y+10);
+            ctx.moveTo(scale(max), y-10); ctx.lineTo(scale(max), y+10);
+            ctx.stroke();
+            ctx.fillStyle = '#1e293b';
+            [[min, "最小値"], [q1, "第1"], [med, "中央"], [q3, "第3"], [max, "最大値"]].forEach(([v, l]) => {
+                ctx.fillText(v, scale(v), y + h/2 + 15);
+            });
+            ctx.fillStyle = '#059669';
+            ctx.fillText(`平均:${avg.toFixed(2)}`, scale(avg), y + h/2 + 30);
         }
 
+        // --- RANDOM ---
         function extractRandom() {
             const min = parseInt(document.getElementById('rand-min').value), max = parseInt(document.getElementById('rand-max').value), count = parseInt(document.getElementById('rand-count').value), unique = document.getElementById('rand-unique').checked;
             let res = [];
+            const r = max - min + 1;
+            if (unique && count > r) { showMsg(`個数が範囲を超えています`); return; }
             while (res.length < count) {
-                const r = Math.floor(Math.random() * (max - min + 1)) + min;
-                if (!unique || !res.includes(r)) res.push(r);
-                if (unique && (max - min + 1) <= res.length && res.length === (max-min+1)) break;
+                const v = Math.floor(Math.random() * r) + min;
+                if (!unique || !res.includes(v)) res.push(v);
             }
-            document.getElementById('random-results').innerText = res.join(', ');
+            document.getElementById('random-results').innerText = res.sort((a,b)=>a-b).join(', ');
             document.getElementById('copy-btn').classList.remove('hidden');
         }
-        function copyRandom() {
-            const t = document.getElementById('random-results').innerText;
-            const el = document.createElement('textarea');
-            el.value = t; document.body.appendChild(el); el.select();
-            try { document.execCommand('copy'); showMsg('コピーしました'); } catch(e){ showMsg('コピー失敗'); }
-            document.body.removeChild(el);
+
+        function copyCalcResult() {
+            const t = resultArea.innerText;
+            if(!t) return;
+            const dummy = document.createElement('textarea');
+            dummy.style.position = 'fixed'; dummy.style.opacity = '0';
+            document.body.appendChild(dummy); dummy.value = t; dummy.select();
+            document.execCommand('copy'); document.body.removeChild(dummy);
+            showMsg('コピーしました');
         }
 
-        function syncSettings() { if (lastRawResult !== null) execResult(); }
+        async function pasteToEditor() {
+            try {
+                const t = await navigator.clipboard.readText();
+                if(t) insertText(t);
+            } catch { showMsg('ペースト失敗'); }
+        }
+
+        function copyRandom() {
+            const t = document.getElementById('random-results').innerText;
+            const dummy = document.createElement('textarea');
+            dummy.style.position = 'fixed'; dummy.style.opacity = '0';
+            document.body.appendChild(dummy); dummy.value = t; dummy.select();
+            document.execCommand('copy'); document.body.removeChild(dummy);
+            showMsg('コピーしました');
+        }
+
+        function showMsg(m) {
+            const b = document.getElementById('msg-box'); b.innerText = m; b.style.display = 'block'; b.style.opacity = '1';
+            setTimeout(() => { b.style.opacity = '0'; setTimeout(()=>b.style.display='none', 300); }, 2000);
+        }
 
         window.onload = () => switchTab('scientific');
     </script>
