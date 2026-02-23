@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Nerdamer for symbolic computation -->
     <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js"></script>
@@ -23,7 +22,7 @@
             display: flex; 
             align-items: center; 
             justify-content: center;
-            font-size: 1.1rem;
+            font-size: 1.25rem;
             font-weight: 600;
             border-right: 1px solid #e5e7eb;
             border-bottom: 1px solid #e5e7eb;
@@ -81,9 +80,10 @@
         .input-frac .num { border-bottom: 1.5px solid #64748b; }
 
         .tight-grid { gap: 0; background-color: #e5e7eb; grid-template-columns: repeat(5, 1fr); height: 100%; }
-        
+        .tight-grid button, .tight-grid div { border: none !important; border-radius: 0 !important; }
+
         .stats-card { background: white; border-radius: 8px; padding: 12px; border: 1px solid #e5e7eb; width: 100%; }
-        .data-input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; min-height: 80px; resize: vertical;}
+        .data-input { width: 100%; border: 1px solid #d1d5db; border-radius: 6px; padding: 8px; font-family: 'Roboto Mono', monospace; font-size: 0.9rem; min-height: 60px; resize: vertical;}
         
         #stat-freq-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
         #stat-freq-table th, #stat-freq-table td { border: 1px solid #cbd5e1; padding: 6px 4px; font-size: 0.85rem; text-align: center; }
@@ -94,7 +94,26 @@
         
         #msg-box { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 8px 16px; border-radius: 20px; font-size: 12px; display: none; z-index: 1000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
 
-        .py-answer-mode { background-color: #dbeafe !important; color: #1e40af !important; border: 2px solid #3b82f6 !important; }
+        /* 三平方タブ用の入力ボックススタイル */
+        .py-input-box { 
+            border: 2px solid #9ca3af;
+            background: white; 
+            padding: 8px 4px; 
+            border-radius: 8px; 
+            text-align: center; 
+            width: 100%; 
+            font-size: 1.25rem; 
+            font-weight: bold;
+            outline: none; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 48px;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .py-input-box:focus { border-color: #3b82f6; }
+        .py-answer-mode { background-color: #eff6ff !important; color: #1e40af !important; border-color: #3b82f6 !important; }
 
         @media (max-width: 768px) {
             #main-container { flex-direction: column; height: 100vh; overflow-y: auto; }
@@ -110,7 +129,6 @@
 
     <div id="main-container" class="flex w-full h-screen bg-white shadow-xl overflow-hidden">
         
-        <!-- Main Area -->
         <div class="flex-1 flex flex-col min-w-0 h-full overflow-hidden border-r">
             <!-- Tabs -->
             <div class="flex border-b text-sm shrink-0 bg-gray-50">
@@ -130,17 +148,17 @@
                     
                     <div id="py-display-wrapper" class="hidden">
                         <div class="grid grid-cols-3 gap-3">
-                            <div class="text-center">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">底辺 a</label>
-                                <input type="text" id="py-a" class="w-full border p-4 text-center rounded-xl text-xl font-bold bg-white outline-none" oninput="handlePyInput('a')" onmousedown="handlePyFocus('a')">
+                            <div class="text-center w-full min-w-0">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">底辺 a</label>
+                                <div id="py-a" class="py-input-box" contenteditable="true" spellcheck="false" oninput="handlePyInput('a')" onmousedown="handlePyFocus('a')"></div>
                             </div>
-                            <div class="text-center">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">高さ b</label>
-                                <input type="text" id="py-b" class="w-full border p-4 text-center rounded-xl text-xl font-bold bg-white outline-none" oninput="handlePyInput('b')" onmousedown="handlePyFocus('b')">
+                            <div class="text-center w-full min-w-0">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">高さ b</label>
+                                <div id="py-b" class="py-input-box" contenteditable="true" spellcheck="false" oninput="handlePyInput('b')" onmousedown="handlePyFocus('b')"></div>
                             </div>
-                            <div class="text-center">
-                                <label class="text-[10px] font-bold text-gray-500 uppercase">斜辺 c</label>
-                                <input type="text" id="py-c" class="w-full border p-4 text-center rounded-xl text-xl font-bold bg-white outline-none" oninput="handlePyInput('c')" onmousedown="handlePyFocus('c')">
+                            <div class="text-center w-full min-w-0">
+                                <label class="text-[10px] font-bold text-gray-500 uppercase block mb-1">斜辺 c</label>
+                                <div id="py-c" class="py-input-box" contenteditable="true" spellcheck="false" oninput="handlePyInput('c')" onmousedown="handlePyFocus('c')"></div>
                             </div>
                         </div>
                     </div>
@@ -225,6 +243,9 @@
         let statsChart = null;
         let lastPyCalculatedField = null;
 
+        let prefFractionChecked = false;
+        let prefRootChecked = false;
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') { e.preventDefault(); execResult(); }
         });
@@ -265,7 +286,6 @@
             currentTab = tab;
             document.querySelectorAll('[id^="tab-"]').forEach(t => t.className = 'flex-1 py-4 text-center font-bold text-gray-500 hover:bg-gray-100 transition-colors');
             document.getElementById(`tab-${tab}`).className = 'flex-1 py-4 text-center font-bold tab-active';
-            
             ['calc-buttons-container', 'stats-content', 'random-settings', 'sci-display-wrapper', 'py-display-wrapper', 'random-display-wrapper'].forEach(id => document.getElementById(id).classList.add('hidden'));
             const displaySection = document.getElementById('display-section');
             displaySection.classList.remove('hidden');
@@ -295,8 +315,8 @@
                     const div = document.createElement('div');
                     div.className = "flex flex-row justify-center items-center bg-gray-50 text-[10px] gap-2 px-1 border-b border-r col-span-2";
                     div.innerHTML = `
-                        <label class="flex items-center gap-1 cursor-pointer select-none"><input type="checkbox" id="pref-fraction" onchange="execResult()"> 分数優先</label>
-                        <label class="flex items-center gap-1 cursor-pointer select-none"><input type="checkbox" id="pref-root" checked onchange="execResult()"> √優先</label>
+                        <label class="flex items-center gap-1 cursor-pointer select-none"><input type="checkbox" id="pref-fraction" onchange="togglePref()" ${prefFractionChecked ? 'checked' : ''}> 分数優先</label>
+                        <label class="flex items-center gap-1 cursor-pointer select-none"><input type="checkbox" id="pref-root" onchange="togglePref()" ${prefRootChecked ? 'checked' : ''}> √優先</label>
                     `;
                     grid.appendChild(div);
                     return;
@@ -304,7 +324,6 @@
                 const b = document.createElement('button');
                 b.className = `calc-btn ${btn.span || ''} ${btn.color || 'bg-white text-gray-800'}`;
                 b.innerText = btn.label;
-                
                 b.onmousedown = (e) => {
                     e.preventDefault(); 
                     if (btn.action.startsWith('insertText')) {
@@ -317,64 +336,88 @@
             });
         }
 
-        function insertText(t) {
-            if (currentTab === 'pythagoras') {
-                const active = document.activeElement;
-                if (active && active.id && active.id.startsWith('py-')) {
-                    if (active.classList.contains('py-answer-mode')) {
+        function togglePref() {
+            prefFractionChecked = document.getElementById('pref-fraction').checked;
+            prefRootChecked = document.getElementById('pref-root').checked;
+            if (currentTab === 'scientific') execResult();
+            if (currentTab === 'pythagoras') recalcPy();
+        }
+
+        // --- 入力ロジックの統合 ---
+        function ensureFocus() {
+            const active = document.activeElement;
+            if (currentTab === 'scientific') {
+                const isInside = editor.contains(active) || active === editor;
+                if (!isInside) editor.focus();
+            } else if (currentTab === 'pythagoras') {
+                const isInside = active && active.closest('.py-input-box');
+                if (!isInside) {
+                    const a = document.getElementById('py-a');
+                    if (a.classList.contains('py-answer-mode')) clearPy();
+                    a.focus();
+                } else {
+                    const box = active.closest('.py-input-box');
+                    if (box.classList.contains('py-answer-mode')) {
                         clearPy();
-                        setTimeout(() => {
-                            const newActive = document.getElementById(active.id);
-                            newActive.focus();
-                            newActive.value = t;
-                            newActive.dispatchEvent(new Event('input'));
-                        }, 10);
-                        return;
+                        box.focus();
                     }
-                    const start = active.selectionStart;
-                    const end = active.selectionEnd;
-                    active.value = active.value.substring(0, start) + t + active.value.substring(end);
-                    active.selectionStart = active.selectionEnd = start + t.length;
-                    active.dispatchEvent(new Event('input'));
-                    return;
                 }
             }
-            editor.focus();
-            if (editor.innerText === '0' && !['.', '!', '^', ')'].includes(t)) editor.innerHTML = '';
+        }
+
+        function insertText(t) {
+            ensureFocus();
+            const active = document.activeElement;
+            const target = currentTab === 'pythagoras' ? active.closest('.py-input-box') : editor;
+            
+            if (target && target.innerText === '0' && target.childNodes.length === 1 && !['.', '!', '^', ')'].includes(t)) {
+                target.innerHTML = '';
+            }
             document.execCommand('insertText', false, t);
+            
+            if (currentTab === 'pythagoras' && target) {
+                handlePyInput(target.id.replace('py-', ''));
+            }
         }
 
         function insertFraction() {
-            editor.focus();
-            if (editor.innerText === '0') editor.innerHTML = '';
+            ensureFocus();
+            const active = document.activeElement;
+            const target = currentTab === 'pythagoras' ? active.closest('.py-input-box') : editor;
+            
+            if (target && target.innerText === '0' && target.childNodes.length === 1) target.innerHTML = '';
             const html = `<span class="input-frac" contenteditable="false"><span class="num" contenteditable="true"></span><span class="den" contenteditable="true"></span></span>&nbsp;`;
             document.execCommand('insertHTML', false, html);
+            
             setTimeout(() => {
-                const fracs = editor.querySelectorAll('.input-frac');
-                const lastFrac = fracs[fracs.length - 1];
-                if(lastFrac) lastFrac.querySelector('.num').focus();
+                if(target) {
+                    const fracs = target.querySelectorAll('.input-frac');
+                    const lastFrac = fracs[fracs.length - 1];
+                    if(lastFrac) lastFrac.querySelector('.num').focus();
+                    
+                    if (currentTab === 'pythagoras') {
+                        handlePyInput(target.id.replace('py-', ''));
+                    }
+                }
             }, 10);
         }
 
-        function backspace() { 
+        function backspace() {
+            ensureFocus();
+            document.execCommand('delete', false, null);
             if (currentTab === 'pythagoras') {
-                const active = document.activeElement;
-                if (active && active.id.startsWith('py-')) {
-                    if (active.classList.contains('py-answer-mode')) {
-                        clearPy();
-                        document.getElementById(active.id).focus();
-                        return;
-                    }
-                    const start = active.selectionStart;
-                    if (start > 0) {
-                        active.value = active.value.substring(0, start - 1) + active.value.substring(start);
-                        active.selectionStart = active.selectionEnd = start - 1;
-                        active.dispatchEvent(new Event('input'));
-                    }
-                    return;
-                }
+                const target = document.activeElement.closest('.py-input-box');
+                if (target) handlePyInput(target.id.replace('py-', ''));
             }
-            editor.focus(); document.execCommand('delete', false, null); 
+        }
+
+        function moveCursor(dir) {
+            ensureFocus();
+            const sel = window.getSelection();
+            if (sel.rangeCount > 0) {
+                const modifyDir = dir > 0 ? 'forward' : 'backward';
+                sel.modify('move', modifyDir, 'character');
+            }
         }
 
         function clearAll() { 
@@ -396,7 +439,9 @@
                 });
             };
             traverse(editor.childNodes);
-            return formula.replace(/\u200B/g, '').replace(/√(\d+\.?\d*)/g, 'sqrt($1)').replace(/√/g, 'sqrt').replace(/×/g, '*').replace(/÷/g, '/');
+            
+            let cleanFormula = formula.replace(/[\u200B\u00A0]/g, '').trim();
+            return cleanFormula.replace(/√(\d+\.?\d*)/g, 'sqrt($1)').replace(/√/g, 'sqrt').replace(/×/g, '*').replace(/÷/g, '/');
         }
 
         function execResult() {
@@ -404,8 +449,8 @@
                 const rawFormula = getFormula();
                 if (!rawFormula.trim() || rawFormula === '0') return;
 
-                const useRoot = document.getElementById('pref-root').checked;
-                const useFrac = document.getElementById('pref-fraction').checked;
+                const useRoot = prefRootChecked;
+                const useFrac = prefFractionChecked;
 
                 const node = math.parse(rawFormula);
                 const evalVal = node.evaluate();
@@ -413,17 +458,18 @@
                 let display = "";
                 if (useRoot || useFrac) {
                     try {
-                        const nExp = rawFormula.replace(/sqrt\(/g, 'sqrt(').replace(/\^/g, '^');
+                        const nExp = rawFormula.replace(/sqrt\(/g, 'sqrt(').replace(/\^/g, '^').replace(/(\d+)!/g, 'factorial($1)');
                         const simplified = nerdamer(nExp).toString();
                         
                         let formatted = simplified.replace(/sqrt\(([^)]+)\)/g, '√$1')
                                                   .replace(/\*/g, '')
                                                   .replace(/(\d+)√/g, '$1√')
-                                                  .replace(/\//g, '÷');
+                                                  .replace(/\//g, '÷')
+                                                  .replace(/abs\(([^)]+)\)/g, '$1');
 
                         if(useFrac && simplified.includes('/')) {
                              formatted = simplified.replace(/([^\/]+)\/([^\/]+)/, '<span class="math-frac"><span class="num">$1</span><span class="den">$2</span></span>')
-                                                   .replace(/sqrt\(([^)]+)\)/g, '√$1').replace(/\*/g,'');
+                                                   .replace(/sqrt\(([^)]+)\)/g, '√$1').replace(/\*/g,'').replace(/abs\(([^)]+)\)/g, '$1');
                         }
 
                         if(!useRoot && formatted.includes('√')) {
@@ -457,25 +503,6 @@
             return parseFloat(v.toFixed(10)).toString();
         }
 
-        function trySimplifySqrt(n) {
-            const tol = 1e-9;
-            if (Math.abs(Math.round(n) - n) < tol) return null;
-            try {
-                const sq = n * n;
-                const f = math.fraction(sq);
-                if (f.d < 1000) {
-                    let m = f.n * f.d, k = 1;
-                    for (let i = 2; i * i <= m; i++) { while (m % (i * i) === 0) { k *= i; m /= (i * i); } }
-                    const gcdVal = math.gcd(k, f.d);
-                    const nk = k / gcdVal, nd = f.d / gcdVal;
-                    if (m === 1) return null;
-                    const res = (nk === 1 ? "" : nk) + `√${m}`;
-                    return nd === 1 ? res : `<span class="math-frac"><span class="num">${res}</span><span class="den">${nd}</span></span>`;
-                }
-            } catch {}
-            return null;
-        }
-
         function addToHistory(h, r) {
             const div = document.createElement('div');
             div.className = 'bg-white p-3 rounded-xl shadow-sm border border-gray-100 cursor-pointer';
@@ -490,71 +517,157 @@
         function clearPy() {
             ['py-a', 'py-b', 'py-c'].forEach(id => {
                 const el = document.getElementById(id);
-                el.value = "";
-                el.classList.remove('py-answer-mode');
+                if(el) {
+                    el.innerHTML = "";
+                    el.classList.remove('py-answer-mode');
+                }
             });
             lastPyCalculatedField = null;
+        }
+
+        function getPyFormula(el) {
+            let formula = "";
+            const traverse = (nodeList) => {
+                nodeList.forEach(node => {
+                    if (node.nodeType === 3) formula += node.textContent;
+                    else if (node.classList && node.classList.contains('input-frac')) {
+                        const n = node.querySelector('.num').innerText.trim() || '0';
+                        const d = node.querySelector('.den').innerText.trim() || '1';
+                        if (formula.length > 0 && /[0-9]/.test(formula.trim().slice(-1))) formula += "+";
+                        formula += `((${n})/(${d}))`;
+                    } else if (node.hasChildNodes()) traverse(node.childNodes);
+                });
+            };
+            traverse(el.childNodes);
+            return formula.replace(/[\u200B\u00A0]/g, '').trim();
+        }
+
+        function normPy(formulaStr) {
+            if (!formulaStr) return "";
+            let s = formulaStr.replace(/(\d+)√/g, '$1*√')
+                              .replace(/√(\d+\.?\d*)/g, 'sqrt($1)')
+                              .replace(/√\(([^)]+)\)/g, 'sqrt($1)')
+                              .replace(/√/g, 'sqrt')
+                              .replace(/×/g, '*')
+                              .replace(/÷/g, '/')
+                              .replace(/\^/g, '^')
+                              .replace(/(\d+)!/g, 'factorial($1)');
+            return s;
         }
 
         function handlePyFocus(suffix) {
             const el = document.getElementById('py-' + suffix);
             if (el && el.classList.contains('py-answer-mode')) {
                 clearPy();
+                setTimeout(() => el.focus(), 0);
             }
+        }
+
+        function recalcPy() {
+            if (!lastPyCalculatedField) return;
+            const targetId = lastPyCalculatedField;
+            document.getElementById(targetId).innerHTML = "";
+            document.getElementById(targetId).classList.remove('py-answer-mode');
+            lastPyCalculatedField = null;
+            
+            let triggered = false;
+            ['a', 'b', 'c'].forEach(i => {
+                if (!triggered && 'py-'+i !== targetId && document.getElementById('py-'+i).innerText.trim() !== "") {
+                    handlePyInput(i);
+                    triggered = true;
+                }
+            });
         }
 
         function handlePyInput(id) {
             const fa = document.getElementById('py-a'), fb = document.getElementById('py-b'), fc = document.getElementById('py-c');
             try {
-                const a = evalExpr(fa.value), b = evalExpr(fb.value), c = evalExpr(fc.value);
-                const useRoot = document.getElementById('pref-root').checked;
+                const valA = normPy(getPyFormula(fa)), valB = normPy(getPyFormula(fb)), valC = normPy(getPyFormula(fc));
+                const useRoot = prefRootChecked;
+                const useFrac = prefFractionChecked;
                 
                 let targetId = lastPyCalculatedField;
 
                 if (!targetId) {
-                    if (!isNaN(a) && !isNaN(b) && !fc.value) targetId = 'py-c';
-                    else if (!isNaN(a) && !isNaN(c) && !fb.value && c > a) targetId = 'py-b';
-                    else if (!isNaN(b) && !isNaN(c) && !fa.value && c > b) targetId = 'py-a';
+                    if (valA && valB && !fc.innerText.trim()) targetId = 'py-c';
+                    else if (valA && valC && !fb.innerText.trim()) targetId = 'py-b';
+                    else if (valB && valC && !fa.innerText.trim()) targetId = 'py-a';
                 }
 
                 if (targetId) {
                     if ('py-'+id === targetId) return; 
 
-                    let resStr = "";
-                    let val = 0;
-                    
-                    if (targetId === 'py-c' && !isNaN(a) && !isNaN(b)) {
-                        val = Math.sqrt(a*a + b*b);
-                        resStr = useRoot ? nerdamer(`sqrt((${fa.value})^2+(${fb.value})^2)`).text() : val;
-                    } else if (targetId === 'py-b' && !isNaN(a) && !isNaN(c)) {
-                        val = Math.sqrt(c*c - a*a);
-                        resStr = useRoot ? nerdamer(`sqrt((${fc.value})^2-(${fa.value})^2)`).text() : val;
-                    } else if (targetId === 'py-a' && !isNaN(b) && !isNaN(c)) {
-                        val = Math.sqrt(c*c - b*b);
-                        resStr = useRoot ? nerdamer(`sqrt((${fc.value})^2-(${fb.value})^2)`).text() : val;
-                    }
+                    let expr = "";
+                    if (targetId === 'py-c' && valA && valB) expr = `(${valA})^2+(${valB})^2`;
+                    else if (targetId === 'py-b' && valA && valC) expr = `(${valC})^2-(${valA})^2`;
+                    else if (targetId === 'py-a' && valB && valC) expr = `(${valC})^2-(${valB})^2`;
 
-                    if (resStr) {
+                    if (expr) {
                         const targetEl = document.getElementById(targetId);
-                        targetEl.value = resStr.toString().replace(/sqrt\(([^)]+)\)/g, '√$1').replace(/\*/g, '');
-                        if(!useRoot && !isNaN(val)) targetEl.value = parseFloat(val.toFixed(10));
+                        let innerRes = nerdamer(expr).evaluate().text();
                         
+                        try {
+                            const numCheck = math.evaluate(innerRes.replace(/sqrt/g, 'sqrt'));
+                            if (numCheck < 0) {
+                                targetEl.innerHTML = '<span class="text-red-500 text-sm">Error</span>';
+                                targetEl.classList.add('py-answer-mode');
+                                lastPyCalculatedField = targetId;
+                                return;
+                            }
+                        } catch(e) {}
+                        
+                        let finalExpr = `sqrt(${innerRes})`;
+                        // evaluate()を行わずに数式のまま文字列化することでルートを保持する
+                        let resultStr = nerdamer(finalExpr).toString(); 
+                        
+                        // Nerdamerの出力整形 (例: 1/2*sqrt(2) -> sqrt(2)/2)
+                        resultStr = resultStr.replace(/^(\d+)\/(\d+)\*sqrt\(([^)]+)\)$/, (m, n, d, r) => n === '1' ? `sqrt(${r})/${d}` : `${n}*sqrt(${r})/${d}`);
+                        resultStr = resultStr.replace(/^\((\d+)\/(\d+)\)\*sqrt\(([^)]+)\)$/, (m, n, d, r) => n === '1' ? `sqrt(${r})/${d}` : `${n}*sqrt(${r})/${d}`);
+                        
+                        // (A/B)*C を (A*C)/B に統一
+                        let mMatch = resultStr.match(/^\(([^/]+)\/([^)]+)\)\*(.*)$/);
+                        if (mMatch) {
+                             let num = mMatch[1] === '1' ? mMatch[3] : mMatch[1] + '*' + mMatch[3];
+                             resultStr = `${num}/${mMatch[2]}`;
+                        }
+
+                        let numVal = 0;
+                        try { numVal = math.evaluate(resultStr.replace(/sqrt/g, 'sqrt')); } catch(e) {}
+
+                        let hasRoot = resultStr.includes('sqrt');
+                        let hasFrac = resultStr.includes('/');
+                        let finalHtml = "";
+
+                        if (hasRoot && !useRoot) {
+                            finalHtml = parseFloat(numVal.toFixed(10)).toString();
+                        } else if (hasFrac && !useFrac) {
+                            if (hasRoot && useRoot) {
+                                finalHtml = resultStr.replace(/sqrt\(([^)]+)\)/g, '√$1').replace(/\*/g, '').replace(/\//g, '÷').replace(/[()]/g, '');
+                            } else {
+                                finalHtml = parseFloat(numVal.toFixed(10)).toString();
+                            }
+                        } else {
+                            let formatted = resultStr.replace(/sqrt\(([^)]+)\)/g, '√$1').replace(/\*/g, '');
+                            if (useFrac && formatted.includes('/')) {
+                                let parts = formatted.split('/');
+                                let num = parts[0].replace(/^\((.*)\)$/, '$1');
+                                let den = parts[1].replace(/^\((.*)\)$/, '$1');
+                                finalHtml = `<span class="math-frac"><span class="num">${num}</span><span class="den">${den}</span></span>`;
+                            } else {
+                                finalHtml = formatted.replace(/[()]/g, '');
+                            }
+                        }
+
+                        targetEl.innerHTML = finalHtml;
                         targetEl.classList.add('py-answer-mode');
                         lastPyCalculatedField = targetId;
                         
                         ['py-a','py-b','py-c'].forEach(k => {
-                            if(k !== targetId) document.getElementById(k).classList.remove('py-answer-mode');
+                            if (k !== targetId) document.getElementById(k).classList.remove('py-answer-mode');
                         });
                     }
                 }
-            } catch (e) {}
-        }
-        function evalExpr(v) { 
-            if(!v || !v.trim()) return NaN;
-            try { 
-                let formula = v.replace(/√(\d+)/g, 'sqrt($1)').replace(/√\(([^)]+)\)/g, 'sqrt($1)').replace(/×/g, '*').replace(/÷/g, '/');
-                return mathParser.evaluate(formula); 
-            } catch { return NaN; } 
+            } catch (e) { console.error(e); }
         }
 
         // --- STATS ---
